@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+
+<html lang="sr">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Asistent + Kviz - Azbukum 1</title>
+
+    <style>
+
+        body { font-family: 'Segoe UI', sans-serif; background-color: #f4f7f9; margin: 0; padding: 20px; color: #333; }
+
+        .container { max-width: 800px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+
+        h1 { color: #2c3e50; text-align: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+
+        .controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 30px; }
+
+        select { padding: 10px; border-radius: 5px; border: 1px solid #ccc; font-size: 16px; }
+
+        button { padding: 10px 20px; background-color: #3498db; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; }
+
+        #plan-display, #quiz-display { background: #fafafa; border: 1px solid #eee; padding: 20px; border-radius: 8px; margin-top: 20px; line-height: 1.6; }
+
+        .section-title { font-weight: bold; color: #e67e22; text-transform: uppercase; display: block; margin-top: 10px; }
+
+        .quiz-btn { display: block; width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #ccc; background: white; cursor: pointer; border-radius: 6px; text-align: left; }
+
+        .correct { background-color: #3498db !important; color: white; }
+
+        .wrong { background-color: #e74c3c !important; color: white; }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Asistent: Učimo srpski 1 (Azbukum)</h1>
+
+    <div class="controls">
+
+        <select id="lessonSelect"></select>
+
+        <button onclick="prikaziSve()">Generiši Plan i Kviz</button>
+
+    </div>
+
+    <div id="plan-display">Izaberite lekciju...</div>
+
+    <div id="quiz-display"></div>
+
+</div>
+
+ 
+
+<script>
+
+    const azbukumPodaci = {
+
+        1: { naslov: "Dobar dan!", ciljevi: "Pozdravi i upoznavanje.", vokabular: "Zdravo, knjiga, tabla.", gramatika: "Glagol 'jesam', rod imenica.", vezbe: "Dijalog upoznavanja.", domaci: "10 rečenica 'Ovo je...'.", kviz: { p: "Kako se kaže 'Good morning'?", o: ["Dobro jutro", "Dobar dan", "Dobro veče"], t: 0 } },
+
+        2: { naslov: "Moja zemlja", ciljevi: "Poreklo i jezici.", vokabular: "Italija, Rusija, jezik.", gramatika: "Odrični oblik 'jesam', zamenice.", vezbe: "Države i nacionalnosti.", domaci: "Kratak tekst o sebi.", kviz: { p: "Odrični oblik za 'Ja sam'?", o: ["Ja ne sam", "Ja nisam"], t: 1 } },
+
+        3: { naslov: "Razumeš li?", ciljevi: "Zanimanja.", vokabular: "Inženjer, lekar, kancelarija.", gramatika: "Prezent (-iti/-eti), množina.", vezbe: "Pogodi zanimanje.", domaci: "Zanimanja prijatelja.", kviz: { p: "Množina od 'Student'?", o: ["Studenti", "Studente"], t: 0 } },
+
+        4: { naslov: "Moja porodica", ciljevi: "Članovi porodice.", vokabular: "Otac, majka, brat, sestra.", gramatika: "Prezent (-ati), veznici.", vezbe: "Opis slike.", domaci: "Porodično stablo.", kviz: { p: "Kako se kaže 'Sister'?", o: ["Brat", "Sestra"], t: 1 } },
+
+        5: { naslov: "Moj svet", ciljevi: "Grad i orijentacija.", vokabular: "Bioskop, apoteka, levo, desno.", gramatika: "Pridevi, perfekat 'biti'.", vezbe: "Uputstva na mapi.", domaci: "Opis dela grada.", kviz: { p: "Suprotno od 'Levo'?", o: ["Desno", "Pravo"], t: 0 } },
+
+        6: { naslov: "Šta radiš?", ciljevi: "Dnevna rutina.", vokabular: "Raditi, spavati, piti kafu.", gramatika: "Akuzativ, modalni glagoli.", vezbe: "Intervju o rutini.", domaci: "Dnevni raspored.", kviz: { p: "Ja ___ kafu (drink).", o: ["pijem", "piješ"], t: 0 } },
+
+        7: { naslov: "Srećan put!", ciljevi: "Putovanja i prošlost.", vokabular: "Odmor, more, stanica.", gramatika: "Perfekat, 'kada'.", vezbe: "Prošli odmor.", domaci: "Razglednica.", kviz: { p: "Prošlost za 'On radi'?", o: ["On je radio", "On je radila"], t: 0 } },
+
+        8: { naslov: "Stil života", ciljevi: "Restoran i hrana.", vokabular: "Jelovnik, račun, gladan.", gramatika: "Genitiv (bez, pre, posle).", vezbe: "Naručivanje.", domaci: "Recept.", kviz: { p: "Kafa bez ___ (sugar).", o: ["šećer", "šećera"], t: 1 } },
+
+        9: { naslov: "Upomoć!", ciljevi: "Zdravlje.", vokabular: "Lekar, lek, boli me...", gramatika: "Lokativ, dativ.", vezbe: "Kod lekara.", domaci: "Saveti.", kviz: { p: "Boli me ___ (head).", o: ["Ruka", "Glava"], t: 1 } },
+
+        10: { naslov: "Kako je kod vas?", ciljevi: "Vreme i planovi.", vokabular: "Sunčano, kiša, sutra.", gramatika: "Futur I, instrumental.", vezbe: "Prognoza.", domaci: "Vikend plan.", kviz: { p: "Sutra ___ sunčano.", o: ["je bilo", "će biti"], t: 1 } },
+
+        11: { naslov: "Odelo čini čoveka", ciljevi: "Izgled i odeća.", vokabular: "Majica, cipele, visok.", gramatika: "Instrumental 'sa'.", vezbe: "Opis fotografije.", domaci: "Opis prijatelja.", kviz: { p: "Kafa ___ mlekom.", o: ["sa", "bez"], t: 0 } },
+
+        12: { naslov: "Hotel s pet zvezdica", ciljevi: "Smeštaj.", vokabular: "Kuhinja, sprat, kirija.", gramatika: "Pregled padeža.", vezbe: "Oglas za stan.", domaci: "Idealna kuća.", kviz: { p: "Reč 'Rent' je:", o: ["Kirija", "Nameštaj"], t: 0 } }
+
+    };
+
+ 
+
+    const select = document.getElementById('lessonSelect');
+
+    for (let i = 1; i <= 12; i++) {
+
+        let opt = document.createElement('option');
+
+        opt.value = i;
+
+        opt.innerHTML = 'Lekcija ' + i + ': ' + azbukumPodaci[i].naslov;
+
+        select.appendChild(opt);
+
+    }
+
+ 
+
+    function prikaziSve() {
+
+        const id = select.value;
+
+        const l = azbukumPodaci[id];
+
+        document.getElementById('plan-display').innerHTML = `<strong>=== ${l.naslov} ===</strong><br><span class="section-title">Ciljevi:</span> ${l.ciljevi}<br><span class="section-title">Vokabular:</span> ${l.vokabular}<br><span class="section-title">Gramatika:</span> ${l.gramatika}<br><span class="section-title">Vežbe:</span> ${l.vezbe}<br><span class="section-title">Domaći:</span> ${l.domaci}`;
+
+       
+
+        let qHtml = `<hr><strong>KVIZ:</strong><br>${l.kviz.p}<br>`;
+
+        l.kviz.o.forEach((o, i) => { qHtml += `<button class="quiz-btn" onclick="proveri(this, ${i}, ${l.kviz.t})">${o}</button>`; });
+
+        document.getElementById('quiz-display').innerHTML = qHtml;
+
+    }
+
+ 
+
+    function proveri(btn, i, t) {
+
+        const buttons = document.querySelectorAll('.quiz-btn');
+
+        buttons.forEach(b => b.disabled = true);
+
+        if (i === t) btn.classList.add('correct');
+
+        else { btn.classList.add('wrong'); buttons[t].classList.add('correct'); }
+
+    }
+
+</script>
+
+</body>
+
+</html># Sample workflow for building and deploying a Jekyll site to GitHub Pages
+name: Deploy Jekyll with GitHub Pages dependencies preinstalled
+
+on:
+  # Runs on pushes targeting the default branch
+  push:
+    branches: ["main"]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # Build job
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Build with Jekyll
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./
+          destination: ./_site
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
